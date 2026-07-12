@@ -12,8 +12,13 @@ from app.Maintenance.models import MaintenanceLog
 from app.FuelExpense.models import FuelLog, Expense
 from app.Vehicles.api import router as vehicle_router
 from app.Drivers.api import router as driver_router
+<<<<<<< HEAD
 from app.Trips.api import router as trip_router
 from app.FuelExpense.api import fuel_router, expense_router
+=======
+from app.Maintenance.api import router as maintenance_router
+
+>>>>>>> 4c2dad8 (Maintenance management module)
 app = FastAPI(
     title="TransitOps API",
     version="1.0.0",
@@ -25,12 +30,16 @@ app.include_router(users_router)
 
 app.include_router(vehicle_router)
 app.include_router(driver_router)
+<<<<<<< HEAD
 app.include_router(trip_router)
 app.include_router(fuel_router)
 app.include_router(expense_router)
+=======
+app.include_router(maintenance_router)
+
+>>>>>>> 4c2dad8 (Maintenance management module)
 @app.get("/")
 def root():
     return {
         "message": "TransitOps Backend Running"
     }
-
