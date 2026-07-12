@@ -52,19 +52,3 @@ def require_dispatcher(current_user: User = Depends(get_current_active_user)) ->
             detail="Access denied."
         )
     return current_user
-
-
-def require_admin_or_safety_officer(current_user: User = Depends(get_current_active_user)) -> User:
-    """
-    Dependency to require the user to have either ADMIN or SAFETY_OFFICER role.
-    """
-    if current_user.role is None or current_user.role.name not in [ROLE_ADMIN, ROLE_SAFETY_OFFICER]:
-        logger.warning(
-            f"Permission denied: User {current_user.id} requested admin/safety officer access but has role "
-            f"{current_user.role.name if current_user.role else 'None'}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied."
-        )
-    return current_user
