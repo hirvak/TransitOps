@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.Auth.api import router as auth_router
+from app.Users.api import router as users_router
 # Import all models to register them in SQLAlchemy mapper registry
 from app.Auth.models import Role
 from app.Users.models import User
@@ -15,6 +16,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(users_router)
 
 
 @app.get("/")

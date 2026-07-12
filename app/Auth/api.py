@@ -18,8 +18,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
     description=(
-        "Registers a new user on the platform. "
-        "The user will be assigned the default DISPATCHER role automatically."
+        "Self-registration endpoint. Registers a new user on the platform "
+        "with a specified system role (ADMIN, FLEET_MANAGER, DISPATCHER, SAFETY_OFFICER, FINANCIAL_ANALYST)."
     )
 )
 def register(request: CreateUserRequest, db: Session = Depends(get_db)):

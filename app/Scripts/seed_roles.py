@@ -5,17 +5,29 @@ from app.Users.models import User
 from app.Vehicles.models import Vehicle
 from app.Drivers.models import Driver
 from app.Trips.models import Trip
-from app.Utils.constants import ROLE_ADMIN, ROLE_MANAGER, ROLE_DISPATCHER
+from app.Utils.constants import (
+    ROLE_ADMIN,
+    ROLE_FLEET_MANAGER,
+    ROLE_DISPATCHER,
+    ROLE_SAFETY_OFFICER,
+    ROLE_FINANCIAL_ANALYST,
+)
 
 
 def seed_roles():
     """
-    Idempotent script to seed default database roles: ADMIN, MANAGER, DISPATCHER.
+    Idempotent script to seed default database roles: ADMIN, FLEET_MANAGER, DISPATCHER, SAFETY_OFFICER, FINANCIAL_ANALYST.
     """
     logger.info("Starting role seeding script...")
     db = SessionLocal()
     try:
-        roles_to_seed = [ROLE_ADMIN, ROLE_MANAGER, ROLE_DISPATCHER]
+        roles_to_seed = [
+            ROLE_ADMIN,
+            ROLE_FLEET_MANAGER,
+            ROLE_DISPATCHER,
+            ROLE_SAFETY_OFFICER,
+            ROLE_FINANCIAL_ANALYST,
+        ]
         for role_name in roles_to_seed:
             existing_role = db.query(Role).filter(Role.name == role_name, Role.is_deleted == False).first()
             if not existing_role:
