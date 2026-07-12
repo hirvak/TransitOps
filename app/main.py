@@ -5,9 +5,12 @@ from app.Users.api import router as users_router
 # Import all models to register them in SQLAlchemy mapper registry
 from app.Auth.models import Role
 from app.Users.models import User
-from app.Vehicles.models import Vehicle
+from app.Vehicles.models import Vehicle, VehicleDocument
 from app.Drivers.models import Driver
 from app.Trips.models import Trip
+from app.Maintenance.models import MaintenanceLog
+from app.Fuel.models import FuelLog
+from app.Expenses.models import Expense
 
 app = FastAPI(
     title="TransitOps API",

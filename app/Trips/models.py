@@ -1,7 +1,7 @@
 import uuid
 from enum import Enum
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 from sqlalchemy import String, Numeric, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.Vehicles.models import Vehicle
     from app.Drivers.models import Driver
     from app.Users.models import User
+    from app.Fuel.models import FuelLog
 
 
 class TripStatus(str, Enum):
@@ -79,5 +80,10 @@ class Trip(BaseModel):
     creator: Mapped["User"] = relationship(
         "User",
         back_populates="created_trips",
+        lazy="selectin"
+    )
+    fuel_logs: Mapped[List["FuelLog"]] = relationship(
+        "FuelLog",
+        back_populates="trip",
         lazy="selectin"
     )
