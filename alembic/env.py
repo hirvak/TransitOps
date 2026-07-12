@@ -14,6 +14,7 @@ from app.Drivers.models import Driver
 from app.Trips.models import Trip
 from app.Maintenance.models import MaintenanceLog
 from app.FuelExpense.models import FuelLog, Expense
+from app.Notifications.models import Notification
 
 config = context.config
 

@@ -1,14 +1,14 @@
 import os
 import uuid
 import math
-from datetime import date
-from typing import List
+from datetime import date, timedelta
+from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status, UploadFile
 from loguru import logger
 
 from app.Vehicles.models import Vehicle, VehicleDocument, VehicleType, VehicleStatus, DocumentType
-from app.Vehicles.schemas import CreateVehicleRequest, UpdateVehicleRequest, VehicleDocumentRequest
+from app.Vehicles.schemas import CreateVehicleRequest, UpdateVehicleRequest, VehicleDocumentRequest, UpdateVehicleDocumentRequest
 from app.Vehicles.repository import VehicleRepository
 
 
@@ -328,3 +328,161 @@ class VehicleService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="An error occurred while deleting the document."
             )
+
+    @staticmethod
+    def get_document_by_id(db: Session, doc_id: uuid.UUID) -> VehicleDocument:
+        doc = VehicleRepository.get_vehicle_document_by_id(db, doc_id)
+        if not doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found."
+            )
+        return doc
+
+    @staticmethod
+    def create_document(
+        db: Session,
+        req: VehicleDocumentRequest,
+        user_id: uuid.UUID
+    ) -> VehicleDocument:
+        # Validate vehicle exists and is active
+        vehicle = VehicleService.get_vehicle(db, req.vehicle_id)
+        if vehicle.is_deleted:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vehicle is deleted."
+            )
+
+        # Issue date <= Expiry date
+        if req.issue_date > req.expiry_date:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Issue date cannot be later than expiry date."
+            )
+
+        # No duplicate active document
+        existing = VehicleRepository.get_vehicle_document_by_type(db, req.vehicle_id, req.document_type)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"An active document of type {req.document_type.value} already exists for this vehicle."
+            )
+
+        try:
+            doc = VehicleRepository.create_vehicle_document(
+                db=db,
+                vehicle_id=req.vehicle_id,
+                document_name=req.document_name,
+                document_type=req.document_type,
+                document_number=req.document_number,
+                file_name=req.file_name,
+                file_path=req.file_path,
+                issue_date=req.issue_date,
+                expiry_date=req.expiry_date,
+                uploaded_by=user_id,
+                remarks=req.remarks
+            )
+            db.commit()
+            db.refresh(doc)
+            logger.info(f"Vehicle document created: {doc.id}")
+            return doc
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error creating vehicle document: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create vehicle document."
+            )
+
+    @staticmethod
+    def update_document(
+        db: Session,
+        doc_id: uuid.UUID,
+        req: UpdateVehicleDocumentRequest
+    ) -> VehicleDocument:
+        doc = VehicleService.get_document_by_id(db, doc_id)
+
+        updates = req.model_dump(exclude_unset=True)
+        # Check date validation if both or either updated
+        issue_d = updates.get("issue_date", doc.issue_date)
+        expiry_d = updates.get("expiry_date", doc.expiry_date)
+        if issue_d and expiry_d and issue_d > expiry_d:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Issue date cannot be later than expiry date."
+            )
+
+        # Check duplicate if type is updated
+        if "document_type" in updates and updates["document_type"] != doc.document_type:
+            existing = VehicleRepository.get_vehicle_document_by_type(db, doc.vehicle_id, updates["document_type"])
+            if existing:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"An active document of type {updates['document_type'].value} already exists for this vehicle."
+                )
+
+        try:
+            doc = VehicleRepository.update_vehicle_document(db, doc, updates)
+            db.commit()
+            db.refresh(doc)
+            logger.info(f"Vehicle document updated: {doc.id}")
+            return doc
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error updating vehicle document: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update vehicle document."
+            )
+
+    @staticmethod
+    def get_document_statistics(db: Session) -> Dict[str, Any]:
+        today_dt = date.today()
+        # Query all active documents
+        docs = db.scalars(select(VehicleDocument).where(VehicleDocument.is_deleted == False)).all()
+
+        total = len(docs)
+        expired = sum(1 for d in docs if d.expiry_date < today_dt)
+        exp_7 = sum(1 for d in docs if today_dt <= d.expiry_date <= today_dt + timedelta(days=7))
+        exp_30 = sum(1 for d in docs if today_dt <= d.expiry_date <= today_dt + timedelta(days=30))
+        valid = sum(1 for d in docs if d.expiry_date >= today_dt)
+
+        type_counts = {t.value: 0 for t in DocumentType}
+        for d in docs:
+            type_counts[d.document_type.value] = type_counts.get(d.document_type.value, 0) + 1
+
+        return {
+            "total_documents": total,
+            "expired": expired,
+            "expiring_7_days": exp_7,
+            "expiring_30_days": exp_30,
+            "valid": valid,
+            "documents_per_type": type_counts
+        }
+
+    @staticmethod
+    def get_all_documents_paginated(
+        db: Session,
+        search: Optional[str] = None,
+        vehicle_id: Optional[uuid.UUID] = None,
+        document_type: Optional[DocumentType] = None,
+        expired: Optional[bool] = None,
+        expiring_soon: Optional[bool] = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+        page: int = 1,
+        page_size: int = 10
+    ) -> Tuple[List[VehicleDocument], Dict[str, int]]:
+        docs = VehicleRepository.get_all_vehicle_documents(
+            db, search, vehicle_id, document_type, expired, expiring_soon, sort_by, sort_order
+        )
+        total = len(docs)
+        pages = (total + page_size - 1) // page_size
+        offset = (page - 1) * page_size
+        paginated_docs = docs[offset:offset + page_size]
+        return paginated_docs, {
+            "total_records": total,
+            "total_pages": pages,
+            "current_page": page,
+            "page_size": page_size
+        }

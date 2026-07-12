@@ -1,8 +1,8 @@
 import uuid
-from datetime import date
-from typing import Tuple, List
+from datetime import date, timedelta
+from typing import Tuple, List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, and_, asc, desc
 
 from app.Vehicles.models import Vehicle, VehicleDocument, VehicleType, VehicleStatus, DocumentType
 from app.Vehicles.schemas import CreateVehicleRequest, VehicleDocumentRequest
@@ -167,22 +167,43 @@ class VehicleRepository:
         vehicle_id: uuid.UUID,
         document_name: str,
         document_type: DocumentType,
+        document_number: str,
+        file_name: str,
         file_path: str,
-        expiry_date: date
+        issue_date: date,
+        expiry_date: date,
+        uploaded_by: uuid.UUID,
+        remarks: Optional[str] = None
     ) -> VehicleDocument:
         """
-        Create a new vehicle document. Does NOT commit.
+        Create a new vehicle document with expanded fields. Does NOT commit.
         """
         db_doc = VehicleDocument(
             vehicle_id=vehicle_id,
             document_name=document_name,
             document_type=document_type,
+            document_number=document_number,
+            file_name=file_name,
             file_path=file_path,
-            expiry_date=expiry_date
+            issue_date=issue_date,
+            expiry_date=expiry_date,
+            uploaded_by=uploaded_by,
+            remarks=remarks
         )
         db.add(db_doc)
         db.flush()
         return db_doc
+
+    @staticmethod
+    def update_vehicle_document(db: Session, doc: VehicleDocument, updates: dict) -> VehicleDocument:
+        """
+        Update fields on a document. Does NOT commit.
+        """
+        for key, value in updates.items():
+            if value is not None:
+                setattr(doc, key, value)
+        db.flush()
+        return doc
 
     @staticmethod
     def get_vehicle_documents(db: Session, vehicle_id: uuid.UUID) -> List[VehicleDocument]:
@@ -226,3 +247,56 @@ class VehicleRepository:
         doc.is_deleted = True
         db.flush()
         return doc
+
+    @staticmethod
+    def get_all_vehicle_documents(
+        db: Session,
+        search: Optional[str] = None,
+        vehicle_id: Optional[uuid.UUID] = None,
+        document_type: Optional[DocumentType] = None,
+        expired: Optional[bool] = None,
+        expiring_soon: Optional[bool] = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc"
+    ) -> List[VehicleDocument]:
+        """
+        Query and search vehicle documents with pagination parameters.
+        """
+        query = select(VehicleDocument).join(Vehicle, VehicleDocument.vehicle_id == Vehicle.id).where(
+            VehicleDocument.is_deleted == False
+        )
+
+        # Filters
+        if vehicle_id:
+            query = query.where(VehicleDocument.vehicle_id == vehicle_id)
+        if document_type:
+            query = query.where(VehicleDocument.document_type == document_type)
+
+        today_dt = date.today()
+        if expired:
+            query = query.where(VehicleDocument.expiry_date < today_dt)
+        elif expiring_soon:
+            query = query.where(
+                and_(
+                    VehicleDocument.expiry_date >= today_dt,
+                    VehicleDocument.expiry_date <= today_dt + timedelta(days=30)
+                )
+            )
+
+        if search:
+            query = query.where(
+                or_(
+                    Vehicle.registration_number.ilike(f"%{search}%"),
+                    Vehicle.vehicle_name.ilike(f"%{search}%"),
+                    VehicleDocument.document_number.ilike(f"%{search}%")
+                )
+            )
+
+        # Sorting
+        sort_field = getattr(VehicleDocument, sort_by, VehicleDocument.created_at)
+        if sort_order.lower() == "asc":
+            query = query.order_by(asc(sort_field))
+        else:
+            query = query.order_by(desc(sort_field))
+
+        return list(db.scalars(query).all())

@@ -10,15 +10,15 @@ from app.Drivers.models import Driver
 from app.Trips.models import Trip
 from app.Maintenance.models import MaintenanceLog
 from app.FuelExpense.models import FuelLog, Expense
-from app.Vehicles.api import router as vehicle_router
+from app.Notifications.models import Notification
+from app.Vehicles.api import router as vehicle_router, document_router as vehicle_document_router
 from app.Drivers.api import router as driver_router
-<<<<<<< HEAD
 from app.Trips.api import router as trip_router
 from app.FuelExpense.api import fuel_router, expense_router
-=======
 from app.Maintenance.api import router as maintenance_router
+from app.Analytics.api import dashboard_router, reports_router, export_router
+from app.Notifications.api import router as notification_router
 
->>>>>>> 4c2dad8 (Maintenance management module)
 app = FastAPI(
     title="TransitOps API",
     version="1.0.0",
@@ -29,15 +29,17 @@ app.include_router(auth_router)
 app.include_router(users_router)
 
 app.include_router(vehicle_router)
+app.include_router(vehicle_document_router)
 app.include_router(driver_router)
-<<<<<<< HEAD
 app.include_router(trip_router)
 app.include_router(fuel_router)
 app.include_router(expense_router)
-=======
 app.include_router(maintenance_router)
+app.include_router(notification_router)
+app.include_router(dashboard_router)
+app.include_router(reports_router)
+app.include_router(export_router)
 
->>>>>>> 4c2dad8 (Maintenance management module)
 @app.get("/")
 def root():
     return {

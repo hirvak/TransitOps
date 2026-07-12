@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from app.Vehicles.models import VehicleType, VehicleStatus, DocumentType
@@ -120,9 +120,32 @@ class VehicleListResponse(BaseModel):
 
 
 class VehicleDocumentRequest(BaseModel):
+    vehicle_id: uuid.UUID
     document_name: str = Field(..., min_length=1, max_length=100)
     document_type: DocumentType
+    document_number: str = Field(..., min_length=1, max_length=100)
+    file_name: str = Field(..., min_length=1, max_length=255)
+    file_path: str = Field(..., min_length=1, max_length=255)
+    issue_date: date
     expiry_date: date
+    remarks: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("expiry_date")
+    @classmethod
+    def val_dates(cls, v: date, info) -> date:
+        # We will validate in the service as well, but we can do a check here
+        return v
+
+
+class UpdateVehicleDocumentRequest(BaseModel):
+    document_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    document_type: Optional[DocumentType] = None
+    document_number: Optional[str] = Field(None, min_length=1, max_length=100)
+    file_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    file_path: Optional[str] = Field(None, min_length=1, max_length=255)
+    issue_date: Optional[date] = None
+    expiry_date: Optional[date] = None
+    remarks: Optional[str] = Field(None, max_length=500)
 
 
 class VehicleDocumentResponse(BaseModel):
@@ -130,9 +153,28 @@ class VehicleDocumentResponse(BaseModel):
     vehicle_id: uuid.UUID
     document_name: str
     document_type: DocumentType
+    document_number: Optional[str] = None
+    file_name: Optional[str] = None
     file_path: str
+    issue_date: Optional[date] = None
     expiry_date: date
+    uploaded_by: Optional[uuid.UUID] = None
+    remarks: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class VehicleDocumentStatisticsResponse(BaseModel):
+    total_documents: int
+    expired: int
+    expiring_7_days: int
+    expiring_30_days: int
+    valid: int
+    documents_per_type: Dict[str, int]
+
+
+class VehicleDocumentListResponse(BaseModel):
+    data: List[VehicleDocumentResponse]
+    pagination: PaginationResponse

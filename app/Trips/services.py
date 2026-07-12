@@ -51,7 +51,7 @@ class TripService:
         active_maint = db.scalar(
             select(func.count(MaintenanceLog.id)).where(
                 MaintenanceLog.vehicle_id == vehicle.id,
-                MaintenanceLog.status == MaintenanceStatus.OPEN,
+                MaintenanceLog.status.in_([MaintenanceStatus.PENDING, MaintenanceStatus.IN_PROGRESS]),
                 MaintenanceLog.is_deleted == False
             )
         )
@@ -212,7 +212,7 @@ class TripService:
             active_maint = db.scalar(
                 select(func.count(MaintenanceLog.id)).where(
                     MaintenanceLog.vehicle_id == vehicle.id,
-                    MaintenanceLog.status == MaintenanceStatus.OPEN,
+                    MaintenanceLog.status.in_([MaintenanceStatus.PENDING, MaintenanceStatus.IN_PROGRESS]),
                     MaintenanceLog.is_deleted == False
                 )
             )
