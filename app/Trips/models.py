@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from app.Vehicles.models import Vehicle
     from app.Drivers.models import Driver
     from app.Users.models import User
-    from app.Fuel.models import FuelLog
+    from app.FuelExpense.models import FuelLog
 
 
 class TripStatus(str, Enum):

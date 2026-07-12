@@ -13,8 +13,7 @@ from app.Vehicles.models import Vehicle, VehicleDocument
 from app.Drivers.models import Driver
 from app.Trips.models import Trip
 from app.Maintenance.models import MaintenanceLog
-from app.Fuel.models import FuelLog
-from app.Expenses.models import Expense
+from app.FuelExpense.models import FuelLog, Expense
 
 config = context.config
 
