@@ -13,6 +13,7 @@ from app.Fuel.models import FuelLog
 from app.Expenses.models import Expense
 from app.Vehicles.api import router as vehicle_router
 from app.Drivers.api import router as driver_router
+from app.Trips.api import router as trip_router
 app = FastAPI(
     title="TransitOps API",
     version="1.0.0",
@@ -24,6 +25,7 @@ app.include_router(users_router)
 
 app.include_router(vehicle_router)
 app.include_router(driver_router)
+app.include_router(trip_router)
 @app.get("/")
 def root():
     return {

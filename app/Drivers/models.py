@@ -1,7 +1,7 @@
 from enum import Enum
 from datetime import date
 from typing import List, TYPE_CHECKING
-from sqlalchemy import String, Numeric, Date, Enum as SQLEnum
+from sqlalchemy import String, Numeric, Date, Enum as SQLEnum, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.Database.database import BaseModel
@@ -41,6 +41,7 @@ class Driver(BaseModel):
         nullable=False,
         default=DriverStatus.AVAILABLE
     )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Relationships
     trips: Mapped[List["Trip"]] = relationship(

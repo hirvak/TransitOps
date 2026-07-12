@@ -56,6 +56,8 @@ class Trip(BaseModel):
     actual_distance: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     fuel_consumed: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     revenue: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    start_odometer: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0.0)
+    end_odometer: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     planned_departure: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     dispatch_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completion_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -87,3 +89,11 @@ class Trip(BaseModel):
         back_populates="trip",
         lazy="selectin"
     )
+
+    @property
+    def actual_departure(self) -> datetime | None:
+        return self.dispatch_time
+
+    @property
+    def actual_arrival(self) -> datetime | None:
+        return self.completion_time
