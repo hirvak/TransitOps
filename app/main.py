@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.Auth.api import router as auth_router
 from app.Users.api import router as users_router
@@ -39,6 +41,11 @@ app.include_router(notification_router)
 app.include_router(dashboard_router)
 app.include_router(reports_router)
 app.include_router(export_router)
+
+# Mount uploads directory to serve static file downloads
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("uploads/vehicle_documents", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def root():
